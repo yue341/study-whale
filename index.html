@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#F6DCEA" id="metaTheme" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<title>学习监督小鲸鱼</title>
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="icon" href="./icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="./icon.svg" />
+<style>
+  :root{
+    /* 亮面：粉嫩少女心 */
+    --bg:#FFF4FA;
+    --bg2:#FBE7F3;
+    --card:#FFFFFF;
+    --text:#5B4A55;
+    --muted:#B091A4;
+    --accent:#5AAECC;          /* 柔和海蓝：按钮/进度环 */
+    --accent-soft:#E7F4F9;
+    --danger:#CC7B72;          /* 低饱和红：危险/催促 */
+    --border:#F6DCEA;
+    --shadow:0 10px 26px rgba(214,140,180,.20);
+    --pill:rgba(90,174,204,.12);
+  }
+  html[data-theme="dark"]{
+    /* 暗面：鎏金卡片（比背景浅一级·半透明磨砂） */
+    --bg:#17141F;
+    --bg2:#1C1826;
+    --card:rgba(245,226,182,0.08);
+    --text:#F4ECDD;
+    --muted:#BBA98C;
+    --accent:#E6C77E;          /* 鎏金强调 */
+    --accent-soft:rgba(230,199,126,.14);
+    --danger:#D69088;
+    --border:rgba(230,199,126,.28);
+    --shadow:0 10px 30px rgba(0,0,0,.55);
+    --pill:rgba(230,199,126,.16);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:linear-gradient(165deg,var(--bg) 0%,var(--bg2) 70%,var(--bg) 100%);
+    color:var(--text); line-height:1.5;
+    -webkit-font-smoothing:antialiased; transition:background .35s,color .35s;
+    padding:0;
+  }
+  html[data-theme="dark"] body{background:radial-gradient(120% 80% at 50% -10%, #221b2e 0%, var(--bg) 55%);}
+
+  .app{max-width:520px; margin:0 auto; min-height:100%; display:flex; flex-direction:column;
+       padding-top:env(safe-area-inset-top); padding-bottom:calc(74px + env(safe-area-inset-bottom));}
+
+  /* top bar */
+  .topbar{display:flex; align-items:center; justify-content:space-between; padding:14px 16px 10px;}
+  .brand{display:flex; align-items:center; gap:8px; font-weight:800; font-size:18px; letter-spacing:.3px;}
+  .brand .logo{font-size:22px;}
+  .theme-btn{
+    border:1px solid var(--border); background:var(--card); color:var(--text);
+    width:42px; height:42px; border-radius:50%; font-size:18px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow);
+    transition:transform .15s, background .35s;
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  }
+  .theme-btn:active{transform:scale(.92);}
+
+  /* pages */
+  .pages{flex:1; width:100%;}
+  .page{display:none; animation:pageIn .28s ease;}
+  .page.active{display:block;}
+  @keyframes pageIn{from{opacity:0; transform:translateY(8px);}to{opacity:1; transform:none;}}
+
+  .card{background:var(--card); border:1px solid var(--border); border-radius:22px;
+        margin:12px 14px; padding:18px 16px; box-shadow:var(--shadow);
+        backdrop-filter:blur(12px) saturate(1.2); -webkit-backdrop-filter:blur(12px) saturate(1.2);}
+  .card h2{margin:0 0 14px; font-size:16px; display:flex; align-items:center; gap:8px;}
+
+  /* dashboard */
+  .stats{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:4px;}
+  .stat{background:var(--accent-soft); border-radius:16px; padding:13px 6px; text-align:center;}
+  .stat .num{font-size:25px; font-weight:800; color:var(--accent); line-height:1.05;}
+  .stat .lbl{font-size:11.5px; color:var(--muted); margin-top:5px;}
+
+  /* whale */
+  .whale-stage{position:relative; display:flex; flex-direction:column; align-items:center; padding:6px 0 4px;}
+  .whale-wrap{position:relative; cursor:pointer; width:240px; max-width:74vw; touch-action:manipulation;}
+  .whale-svg{width:100%; height:auto; display:block; filter:drop-shadow(0 12px 18px rgba(150,120,170,.28));}
+  .whale-body{transition:fill .6s ease;}
+  .whale-wrap.awakened{filter:drop-shadow(0 0 20px rgba(180,40,60,.55));}
+  .whale-wrap.awakened .whale-body{animation:aura 2.4s ease-in-out infinite;}
+  @keyframes aura{0%,100%{filter:brightness(1)}50%{filter:brightness(1.16)}}
+  @keyframes whaleBounce{0%{transform:scale(1)}28%{transform:scale(1.16) translateY(-9px)}58%{transform:scale(.95) translateY(5px)}100%{transform:scale(1)}}
+  .whale-wrap.bounce{animation:whaleBounce .5s cubic-bezier(.28,.84,.42,1);}
+  .tier-badge{margin-top:10px; font-size:12.5px; color:var(--muted); font-weight:700;}
+  .whale-hint{font-size:12px; color:var(--muted); margin-top:2px; text-align:center;}
+  .bubble{
+    position:absolute; left:50%; bottom:calc(100% - 4px); transform:translateX(-50%);
+    background:var(--card); color:var(--text); border:1px solid var(--border);
+    padding:11px 15px; border-radius:16px; max-width:248px; width:max-content;
+    box-shadow:var(--shadow); opacity:0; pointer-events:none; transition:opacity .28s;
+    font-size:13.5px; line-height:1.45; text-align:center; z-index:5;
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  }
+  .bubble.show{opacity:1;}
+  .bubble::after{content:""; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+    border:8px solid transparent; border-top-color:var(--card);}
+  .reset-row{display:flex; justify-content:center; margin-top:16px;}
+
+  /* buttons */
+  .btn{border:none; border-radius:14px; padding:12px 18px; font-size:14px; font-weight:700;
+    cursor:pointer; transition:transform .12s, opacity .2s; font-family:inherit;}
+  .btn:active{transform:scale(.96);}
+  .btn-ghost{background:transparent; color:var(--muted); border:1px solid var(--border);}
+  .btn-danger{background:var(--danger); color:#fff;}
+  .btn-accent{background:var(--accent); color:#fff;}
+  .btn-soft{background:var(--accent-soft); color:var(--accent);}
+  .btn[disabled]{opacity:.5; cursor:not-allowed;}
+
+  /* pomodoro */
+  .pomo-set{display:flex; gap:12px; justify-content:center; margin-bottom:8px; flex-wrap:wrap;}
+  .pomo-set label{font-size:12px; color:var(--muted); display:flex; flex-direction:column; gap:5px; align-items:center; font-weight:600;}
+  .pomo-set input{width:64px; padding:9px; border:1px solid var(--border); border-radius:12px;
+    text-align:center; font-size:15px; background:var(--accent-soft); color:var(--text); font-family:inherit;}
+  .ring-box{position:relative; width:220px; height:220px; margin:8px auto 14px;}
+  .ring-box svg{transform:rotate(-90deg); width:100%; height:100%;}
+  .ring-track{fill:none; stroke:var(--border); stroke-width:14;}
+  .ring-prog{fill:none; stroke:var(--accent); stroke-width:14; stroke-linecap:round; transition:stroke-dashoffset .35s linear;}
+  .ring-center{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .ring-time{font-size:44px; font-weight:800; letter-spacing:1px; font-variant-numeric:tabular-nums;}
+  .ring-mode{font-size:12.5px; color:var(--muted); margin-top:2px; font-weight:600;}
+  .pomo-ctrl{display:flex; gap:12px; justify-content:center;}
+  .pomo-today{text-align:center; font-size:12.5px; color:var(--muted); margin-top:14px;}
+
+  /* memo */
+  .memo-add{display:flex; gap:8px; margin-bottom:14px;}
+  .memo-add input{flex:1; padding:12px 14px; border:1px solid var(--border); border-radius:14px;
+    background:var(--accent-soft); color:var(--text); font-size:14px; font-family:inherit;}
+  .memo-list{display:flex; flex-direction:column; gap:9px; list-style:none; margin:0; padding:0;}
+  .memo-item{display:flex; align-items:center; gap:11px; background:var(--accent-soft);
+    border:1px solid var(--border); border-radius:14px; padding:11px 13px;}
+  .memo-item .cb{width:21px; height:21px; flex:0 0 21px; border-radius:7px; border:2px solid var(--accent);
+    cursor:pointer; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; background:transparent; transition:background .2s;}
+  .memo-item.done .cb{background:var(--accent); border-color:var(--accent);}
+  .memo-item .txt{flex:1; font-size:14px; word-break:break-word;}
+  .memo-item.done .txt{text-decoration:line-through; color:var(--muted);}
+  .memo-item .act{display:flex; gap:4px;}
+  .memo-item .act button{border:none; background:transparent; color:var(--muted); cursor:pointer; font-size:15px; padding:2px 5px;}
+  .memo-empty{text-align:center; color:var(--muted); font-size:13px; padding:16px 0;}
+
+  /* splash / 浪花 */
+  .splash-add{display:flex; gap:8px; margin-top:4px;}
+  .splash-add input{flex:1; padding:11px 13px; border:1px solid var(--border); border-radius:14px;
+    background:var(--accent-soft); color:var(--text); font-size:14px; font-family:inherit;}
+  .splash-count{font-size:12.5px; color:var(--muted); margin-bottom:12px; line-height:1.5;}
+  .splash-count b{color:var(--accent);}
+  .splash-filter{display:flex; gap:8px; margin-bottom:12px;}
+  .splash-filter button{flex:1; border:1px solid var(--border); background:var(--card); color:var(--muted);
+    border-radius:12px; padding:7px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit;
+    transition:color .2s,background .2s;}
+  .splash-filter button.active{color:var(--accent); background:var(--accent-soft); border-color:var(--accent);}
+  .splash-list{display:flex; flex-direction:column; gap:9px; list-style:none; margin:0; padding:0;}
+  .splash-item{display:flex; flex-direction:column; gap:7px; background:var(--accent-soft);
+    border:1px solid var(--border); border-radius:14px; padding:11px 13px;}
+  .splash-item .line1{display:flex; align-items:flex-start; gap:9px;}
+  .splash-item .txt{flex:1; font-size:14px; word-break:break-word;}
+  .splash-item.done .txt{text-decoration:line-through; color:var(--muted);}
+  .splash-item .meta{font-size:11px; color:var(--muted);}
+  .splash-item .act{display:flex; gap:6px; flex-wrap:wrap;}
+  .splash-item .act button{border:1px solid var(--border); background:var(--card); color:var(--text);
+    border-radius:10px; padding:5px 9px; font-size:12px; cursor:pointer; font-family:inherit; transition:transform .12s;}
+  .splash-item .act button:active{transform:scale(.94);}
+  .splash-item .act button.primary{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .splash-empty{text-align:center; color:var(--muted); font-size:13px; padding:22px 0; line-height:1.6;}
+
+  /* tab bar */
+  .tab{position:relative;}
+  .tabbar{position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:100%; max-width:520px;
+    display:flex; gap:6px; padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+    background:var(--card); border-top:1px solid var(--border);
+    backdrop-filter:blur(14px) saturate(1.2); -webkit-backdrop-filter:blur(14px) saturate(1.2);}
+  .tab{flex:1; border:none; background:transparent; color:var(--muted); cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:3px; font-size:11px; font-weight:700; font-family:inherit;
+    padding:6px 0; border-radius:14px; transition:color .2s, background .2s;}
+  .tab .ic{font-size:21px; line-height:1;}
+  .tab.active{color:var(--accent); background:var(--accent-soft);}
+  .tab .badge{position:absolute; top:1px; left:50%; margin-left:6px; min-width:16px; height:16px; padding:0 4px;
+    border-radius:9px; background:var(--danger); color:#fff; font-size:10px; font-weight:800;
+    display:none; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,.25);}
+
+  /* modal */
+  .overlay{position:fixed; inset:0; background:rgba(40,20,40,.45); display:none;
+    align-items:center; justify-content:center; padding:24px; z-index:50; backdrop-filter:blur(3px);}
+  .overlay.show{display:flex;}
+  .modal{background:var(--card); border-radius:20px; padding:24px 20px; max-width:340px; width:100%;
+    box-shadow:0 18px 44px rgba(0,0,0,.35); text-align:center;
+    backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);}
+  .modal h3{margin:0 0 8px; font-size:17px;}
+  .modal p{margin:0 0 16px; color:var(--muted); font-size:13.5px;}
+  .modal .row{display:flex; gap:10px; justify-content:center;}
+
+  /* fx */
+  #fx{position:fixed; inset:0; pointer-events:none; z-index:60; overflow:hidden;}
+  .fx-item{position:absolute; animation:fxFloat 1.7s ease-out forwards; will-change:transform,opacity;}
+  @keyframes fxFloat{0%{opacity:0; transform:translate(0,0) scale(.6)}15%{opacity:1}100%{opacity:0; transform:translate(var(--dx),var(--dy)) scale(1.15)}}
+
+  .foot{text-align:center; color:var(--muted); font-size:11px; padding:14px 10px 4px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand"><span class="logo">🐳</span><span>学习监督小鲸鱼</span></div>
+    <button class="theme-btn" id="themeBtn" title="切换主题">🌙</button>
+  </div>
+
+  <main class="pages">
+
+    <!-- 页面 1：番茄钟 -->
+    <section class="page active" id="page-pomo">
+      <div class="card">
+        <h2>⏱️ 番茄钟</h2>
+        <div class="pomo-set">
+          <label>专注(分)<input type="number" id="workMin" min="1" max="120" value="25" /></label>
+          <label>休息(分)<input type="number" id="breakMin" min="1" max="60" value="5" /></label>
+        </div>
+        <div class="ring-box">
+          <svg viewBox="0 0 200 200">
+            <circle class="ring-track" cx="100" cy="100" r="86"></circle>
+            <circle class="ring-prog" id="ringProg" cx="100" cy="100" r="86"></circle>
+          </svg>
+          <div class="ring-center">
+            <div class="ring-time" id="pomoTime">25:00</div>
+            <div class="ring-mode" id="pomoMode">专注时间</div>
+          </div>
+        </div>
+        <div class="pomo-ctrl">
+          <button class="btn btn-accent" id="pomoStart">开始</button>
+          <button class="btn btn-ghost" id="pomoReset">重置</button>
+        </div>
+        <div class="pomo-today">今日已完成 <b id="pomoTodayNum">0</b> 个番茄 🍅</div>
+      </div>
+
+      <div class="card">
+        <h2>🌊 浪花速记</h2>
+        <div class="splash-count" id="splashQCount">把一闪而过的杂念丢进来，休息时再处理，不打断专注。</div>
+        <div class="splash-add">
+          <input type="text" id="splashQuick" placeholder="灵光一闪？快速丢进来…" maxlength="120" />
+          <button class="btn btn-accent" id="splashQuickBtn">丢进浪花</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 页面 2：备忘录 -->
+    <section class="page" id="page-memo">
+      <div class="card">
+        <h2>📝 备忘录</h2>
+        <div class="memo-add">
+          <input type="text" id="memoInput" placeholder="写点什么…（回车添加）" maxlength="200" />
+          <button class="btn btn-accent" id="memoAdd">添加</button>
+        </div>
+        <ul class="memo-list" id="memoList"></ul>
+      </div>
+    </section>
+
+    <!-- 页面 3：浪花 · 碎片灵感盒子 -->
+    <section class="page" id="page-splash">
+      <div class="card">
+        <h2>🌊 浪花 · 碎片灵感盒子</h2>
+        <div class="splash-count">学习中途冒出的杂念，先丢进来，休息时再处理，不让它们打断专注。</div>
+        <div class="splash-filter" id="splashFilter">
+          <button data-f="todo" class="active">待处理</button>
+          <button data-f="done">已处理</button>
+          <button data-f="all">全部</button>
+        </div>
+        <ul class="splash-list" id="splashList"></ul>
+      </div>
+    </section>
+
+    <!-- 页面 4：娱乐（互动小鲸鱼 + 看板） -->
+    <section class="page" id="page-fun">
+      <div class="card">
+        <h2>📊 今日看板</h2>
+        <div class="stats">
+          <div class="stat"><div class="num" id="statPomo">0</div><div class="lbl">今日番茄</div></div>
+          <div class="stat"><div class="num" id="statClick">0</div><div class="lbl">今日点击</div></div>
+          <div class="stat"><div class="num" id="statTotal">0</div><div class="lbl">总点击</div></div>
+          <div class="stat"><div class="num" id="statSplash">0</div><div class="lbl">今日浪花</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="whale-stage">
+          <div class="whale-wrap" id="whale" role="button" aria-label="点击小鲸鱼">
+            <div class="bubble" id="bubble"></div>
+            <svg class="whale-svg" viewBox="0 0 240 180" aria-hidden="true">
+              <defs>
+                <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#ffffff" stop-opacity="0.55"/>
+                  <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.12"/>
+                  <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <!-- tail -->
+              <path d="M48 112 C30 100 18 104 12 116 C24 114 36 116 50 122 Z" style="fill:var(--wc)"/>
+              <path d="M48 116 C32 124 24 134 26 146 C36 136 44 130 54 124 Z" style="fill:var(--wc)"/>
+              <!-- body -->
+              <path class="whale-body" d="M48 112 C40 86 66 66 104 66 C146 66 178 78 196 98 C203 106 203 118 196 126 C180 146 146 152 108 149 C78 147 56 138 48 112 Z" style="fill:var(--wc)"/>
+              <!-- gloss -->
+              <path d="M48 112 C40 86 66 66 104 66 C146 66 178 78 196 98 C203 106 203 118 196 126 C180 146 146 152 108 149 C78 147 56 138 48 112 Z" fill="url(#gloss)"/>
+              <!-- belly -->
+              <path d="M70 130 C110 150 160 146 188 126 C168 142 120 148 80 140 Z" fill="rgba(255,255,255,.30)"/>
+              <!-- cheek -->
+              <circle cx="160" cy="118" r="5.5" fill="rgba(255,150,175,.45)"/>
+              <!-- eye -->
+              <circle cx="172" cy="104" r="6.5" fill="#3a2b34"/>
+              <circle cx="174" cy="101.5" r="2.2" fill="#fff"/>
+              <!-- mouth -->
+              <path d="M176 120 Q189 126 199 117" stroke="#3a2b34" stroke-width="3" fill="none" stroke-linecap="round"/>
+              <!-- spout -->
+              <g fill="rgba(255,255,255,.8)">
+                <circle cx="150" cy="52" r="4"/><circle cx="159" cy="42" r="3.2"/><circle cx="142" cy="44" r="2.6"/>
+              </g>
+            </svg>
+          </div>
+          <div class="tier-badge" id="tierBadge">语气：温柔鼓励</div>
+          <div class="whale-hint">点我一下，让我督促你 ☝️</div>
+        </div>
+        <div class="reset-row">
+          <button class="btn btn-ghost" id="resetBtn">重置鲸鱼数据</button>
+        </div>
+      </div>
+
+      <div class="foot">数据保存在本机浏览器 · 离线可用 · 可添加到手机桌面 🏠</div>
+    </section>
+
+  </main>
+
+  <nav class="tabbar" id="tabbar">
+    <button class="tab active" data-page="pomo"><span class="ic">⏱️</span>番茄钟</button>
+    <button class="tab" data-page="memo"><span class="ic">📝</span>备忘录</button>
+    <button class="tab" data-page="splash"><span class="ic">🌊</span>浪花<span class="badge" id="splashBadge">0</span></button>
+    <button class="tab" data-page="fun"><span class="ic">🐳</span>娱乐</button>
+  </nav>
+</div>
+
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+<div id="fx"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- quotes ---------------- */
+  var GENTLE = [
+    "你已经很棒啦，继续保持～","慢慢来，比较快。","今天也是努力的小可爱呢。","深呼吸，你能行的。",
+    "小鲸鱼陪你一起加油！","每一步都算数哦。","别急，稳稳地往前走。","你比昨天的自己更厉害了。",
+    "累了就歇一下，别勉强。","学习是一场温柔的马拉松。","你已经迈出第一步啦。","相信自己，潜力无限。",
+    "专注当下的这一分钟。","小鲸鱼为你点赞👍","进度虽慢，方向是对的。","给自己一点鼓励吧。",
+    "你正在变得更好。","安静地努力最动人。","今天也要温柔对待自己。","小小的坚持，大大的改变。",
+    "你可以的，真的。","别怕慢，怕的是停。","把今天过好就够了。","你的努力小鲸鱼都看到啦。",
+    "心静下来，效率自然来。","一次只做一件事。","你已经超过很多人了。","坚持的样子真好看。",
+    "给自己一个微笑吧。","学习是为了更自由的自己。","慢慢耕耘，静待花开。","你值得所有美好。",
+    "别和别人比，和昨天的自己比。","专注，是一种温柔的力量。","小鲸鱼在为你打气！","今天的你也很认真呢。",
+    "一步一步，路就走通了。","休息也是努力的一部分。","你正在积累了不起的力量。","别慌，时间会奖励坚持的人。",
+    "把心放平，把事做细。","你已经做得很好了。","继续往前，风景会更好。","小鲸鱼相信你可以。",
+    "温柔地坚持，最有力。","你比你以为的更坚强。","今天的小目标完成了吗？","每一次翻开书都是胜利。",
+    "保持热爱，奔赴山海。","你正在成为想要的自己。"
+  ];
+  var MILD = [
+    "该收收心啦，专注一会儿。","手机放一边，好不好？","时间悄悄溜走了哦。","小鲸鱼提醒你该动笔了。",
+    "刚才是不是走神了？","喝口水，然后继续吧。","别刷啦，任务还在等你。","设定个小目标如何？",
+    "把计划列一列吧。","现在开始，刚刚好。","别等“状态好”，先做起来。","小鲸鱼有点担心你的进度。",
+    "今天的内容复习了吗？","提醒一下，该学习了。","别让拖延占了上风。","站起来伸个懒腰，再回来。",
+    "把干扰关掉试试？","你的番茄钟还没开始呢。","一点点，就一点点。","别把今天的事推给明天。",
+    "小鲸鱼在看着你哦～","该翻书啦，别发呆。","任务清单还空着呢。","提醒：专注 25 分钟就好。",
+    "别让短视频偷走时间。","现在不学，更待何时？","把微信先静音吧。","小鲸鱼轻声提醒你。",
+    "进度有点慢咯，加加油。","该把想法写下来啦。","别躺了，起来学一会儿。","今天的备忘录更新了吗？",
+    "提醒你，目标还在那儿。","别分心，世界很吵。","小鲸鱼觉得你能更专注。","先做完这件，再玩。",
+    "时间不等人呀。","把待办勾掉一个吧。","别让“等一下”变成“算了”。","该关掉游戏了哦。",
+    "小鲸鱼提醒：该记录啦。","别光看，动手写。","今天的计划完成了吗？","提醒自己，为什么开始。",
+    "别犹豫，翻开第一页。","小鲸鱼在等你行动呢。","别让借口打败你。","该把手机倒扣了。",
+    "提醒：专注带来心流。","现在就是最好的开始。"
+  ];
+  var URGE = [
+    "别看了，快去学习！","现在！立刻！马上！","你的计划要凉了知道吗？","别再刷手机了，求你了。",
+    "时间不够了，动起来！","小鲸鱼急了，快去学习！","还等什么？开干！","别磨蹭，立刻开始。",
+    "番茄钟都替你着急。","再不动就来不及啦。","把游戏关了，听见没！","你的未来在等你，别停。",
+    "别发呆了，写一行也好。","现在不学，今晚别睡安稳。","冲！就现在！","别让今天的自己后悔。",
+    "闹钟响了，该学习了！","快把待办勾掉几个。","别躺平，站起来学。","时间正在逃跑，抓住它！",
+    "小鲸鱼催你啦，快动！","别刷视频了，真的。","立刻翻开书，三秒倒计时！","你的进度落后了，加油！",
+    "别找借口，做就完了。","现在不做，永远不做。","快，番茄钟启动！","别让拖延吃掉你。",
+    "立刻！马上！去学习！","小鲸鱼都替你着急了。","别发呆，时间很贵。","动起来，别空想。",
+    "你的目标在喊你呢。","别等灵感，先动笔。","快去学习，别让我说第二遍。","别瘫着了，起来！",
+    "时间不回头，快走！","别让今天白白溜走。","立刻行动，不要犹豫。","小鲸鱼怒了，快学！",
+    "别刷了，书在等你。","你的对手在努力，你呢？","快，别磨叽。","现在就开始，别拖。",
+    "别让“等会儿”毁了你。","动！立刻！马上！","小鲸鱼督促你：去学习！","别空转，出成果。",
+    "时间紧迫，冲鸭！","快去学习，这是命令！"
+  ];
+  var STRICT = [
+    "你已浪费太多时间，即刻改正。","纪律不强，梦想皆空。","别再自欺欺人，去学习。","你的退路，正在被拖延吃掉。",
+    "没有借口，只有行动。","监督模式已开启，请服从。","你对的起昨天的自己吗？","停下手头的无聊，立刻学习。",
+    "时间在审判每一个虚度的人。","别让懒惰定义你。","严肃提醒：目标尚未达成。","你离想要的生活，还差努力。",
+    "别再拖延，后果自负。","小鲸鱼已切换到监督形态。","你的竞争者从不停歇。","立即行动，否则渐行渐远。",
+    "自律即自由，记住这句话。","别让今天的松懈毁掉明天。","停止敷衍，认真对待。","你欠自己一个全力以赴。",
+    "监督警告：进度严重滞后。","别找理由，去做就对了。","你的潜力，正被浪费。","立刻、马上、现在去学习。",
+    "别让安逸腐蚀你的斗志。","时间不会为你的犹豫停留。","严肃地告诉你：该拼了。","别再假装努力。",
+    "你的未来，正在被现在决定。","停止抱怨，开始行动。","监督者不会容忍懈怠。","你本可以更好，别浪费。",
+    "别让手机绑架你的人生。","立即纠正，刻不容缓。","你的承诺，还在吗？","别让平庸成为宿命。",
+    "严肃催促：去学习，现在。","你正在辜负期待。","停止空想，落地执行。","没有人替你努力，除了你。",
+    "监督模式全程在线。","别让“明天”成为借口库。","你的时间，正被偷走。","立刻回到任务上。",
+    "别让惯性拖垮你。","严肃提醒：还不够拼。","你值得更狠的自己。","停止内耗，向外发力。",
+    "监督者说：行动，否则出局。","别让今天的懒，成为永远的憾。"
+  ];
+  var AWAKENED = [
+    "监督者已觉醒，你无处可逃。","百分点击，鲸鱼之眼已开。","你激活了隐藏的监督形态。","从此刻起，懒惰无所遁形。",
+    "觉醒之力加持，去征服目标！","小鲸鱼进化完毕，全程护航。","你的坚持点燃了监督之火。","百击共鸣，监督者现身。",
+    "你已通过试炼，继续前进。","觉醒形态：全力以赴模式。","鲸鱼之魂与你同在。","隐藏彩蛋解锁：终极监督。",
+    "你唤醒了沉睡的督促者。","百次点击，见证你的决心。","监督者觉醒，世界为你让路。","你已经很强了，再强一点。",
+    "彩蛋特效已点亮，加油！","鲸鱼之眼凝视着你，去学习。","觉醒吧，去成为更好的自己。","你激活了传说中的监督鲸。"
+  ];
+
+  /* ---------------- state ---------------- */
+  var KEY = "whalePWA_state_v2";
+  var todayStr = function(){ var d=new Date(); return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2); };
+  var defaultState = {
+    totalClicks:0, todayClicks:0, todayPomos:0, date:todayStr(),
+    work:25, break:5, memos:[], splashes:[], theme:"light", awakened:false
+  };
+  var state = load();
+  function load(){
+    try{ var s=JSON.parse(localStorage.getItem(KEY)); if(s&&typeof s==="object"){ return Object.assign({}, defaultState, s); } }catch(e){}
+    return JSON.parse(JSON.stringify(defaultState));
+  }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+  if(state.date !== todayStr()){ state.date=todayStr(); state.todayClicks=0; state.todayPomos=0; save(); }
+
+  /* ---------------- whale color ramp ---------------- */
+  // 浅蓝 → 薰衣草紫 → 豆沙粉 → 橘红 → 酒红深红
+  var STOPS = [
+    [168,216,240], // 浅蓝 light sky blue
+    [201,182,240], // 薰衣草紫 lavender
+    [224,163,174], // 豆沙粉 dusty rose
+    [240,145,110], // 橘红 orange-red
+    [160,44,58]    // 酒红深红 wine/deep red
+  ];
+  function colorFor(total){
+    var t = Math.min(total,100)/100;            // 0..1
+    var seg = t*(STOPS.length-1);              // 0..4
+    var i = Math.min(Math.floor(seg), STOPS.length-2);
+    var f = seg - i;
+    var a=STOPS[i], b=STOPS[i+1];
+    var r=Math.round(a[0]+(b[0]-a[0])*f);
+    var g=Math.round(a[1]+(b[1]-a[1])*f);
+    var bl=Math.round(a[2]+(b[2]-a[2])*f);
+    return "rgb("+r+","+g+","+bl+")";
+  }
+  function tierOf(total){
+    if(total>=100) return {arr:AWAKENED, name:"🔥 觉醒监督"};
+    if(total>=30)  return {arr:STRICT,  name:"⚠️ 严肃监督"};
+    if(total>=20)  return {arr:URGE,    name:"🚀 催促行动"};
+    if(total>=10)  return {arr:MILD,    name:"🌤️ 温和提醒"};
+    return {arr:GENTLE, name:"💙 温柔鼓励"};
+  }
+
+  var whaleEl = document.getElementById("whale");
+  var bubbleEl = document.getElementById("bubble");
+  var tierBadge = document.getElementById("tierBadge");
+  var lastQuote = "", bubbleTimer = null;
+
+  function applyWhaleColor(){
+    var c = colorFor(state.totalClicks);
+    whaleEl.style.setProperty("--wc", c);
+    whaleEl.classList.toggle("awakened", state.totalClicks>=100);
+  }
+  function showQuote(){
+    var tier = tierOf(state.totalClicks), arr=tier.arr, q;
+    do { q = arr[Math.floor(Math.random()*arr.length)]; } while(arr.length>1 && q===lastQuote);
+    lastQuote = q;
+    bubbleEl.textContent = q;
+    bubbleEl.classList.add("show");
+    clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(function(){ bubbleEl.classList.remove("show"); }, 3800);
+    tierBadge.textContent = "语气：" + tier.name;
+  }
+  function onWhaleClick(){
+    state.totalClicks++; state.todayClicks++;
+    applyWhaleColor(); showQuote();
+    whaleEl.classList.remove("bounce"); void whaleEl.offsetWidth; whaleEl.classList.add("bounce");
+    if(state.totalClicks===100 && !state.awakened){ state.awakened=true; celebrate("confetti"); setTimeout(showQuote,200); }
+    save(); renderStats();
+  }
+  whaleEl.addEventListener("click", onWhaleClick);
+
+  /* reset double confirm */
+  var overlay = document.getElementById("overlay"), modal = document.getElementById("modal");
+  function openModal(html){ modal.innerHTML=html; overlay.classList.add("show"); }
+  function closeModal(){ overlay.classList.remove("show"); }
+  overlay.addEventListener("click", function(e){ if(e.target===overlay) closeModal(); });
+  document.getElementById("resetBtn").addEventListener("click", function(){
+    openModal(
+      "<h3>⚠️ 重置鲸鱼数据</h3><p>将清空累计点击、今日点击与鲸鱼颜色，且不可恢复。确定吗？</p>"+
+      "<div class='row'><button class='btn btn-ghost' id='mCancel'>取消</button><button class='btn btn-danger' id='mNext'>确认重置</button></div>"
+    );
+    document.getElementById("mCancel").onclick = closeModal;
+    document.getElementById("mNext").onclick = function(){
+      openModal(
+        "<h3>🚨 最后确认</h3><p>再次提醒：所有鲸鱼数据将被永久清空。真的要重置吗？</p>"+
+        "<div class='row'><button class='btn btn-ghost' id='mCancel2'>再想想</button><button class='btn btn-danger' id='mDo'>彻底重置</button></div>"
+      );
+      document.getElementById("mCancel2").onclick = closeModal;
+      document.getElementById("mDo").onclick = function(){
+        state.totalClicks=0; state.todayClicks=0; state.awakened=false; save();
+        applyWhaleColor(); showQuote(); renderStats(); closeModal();
+      };
+    };
+  });
+
+  /* ---------------- pomodoro ---------------- */
+  var RING_R=86, RING_C=2*Math.PI*RING_R;
+  var ringProg=document.getElementById("ringProg"); ringProg.style.strokeDasharray=RING_C;
+  var pomoTimeEl=document.getElementById("pomoTime"), pomoModeEl=document.getElementById("pomoMode");
+  var workMinEl=document.getElementById("workMin"), breakMinEl=document.getElementById("breakMin");
+  var pomoStartBtn=document.getElementById("pomoStart"), pomoResetBtn=document.getElementById("pomoReset");
+  var pomoTodayNum=document.getElementById("pomoTodayNum");
+  var pomo={mode:"work", running:false, remaining:state.work*60, total:state.work*60, endTime:0, timer:null};
+  workMinEl.value=state.work; breakMinEl.value=state.break;
+  function fmt(s){ s=Math.max(0,Math.round(s)); var m=Math.floor(s/60), ss=s%60; return ("0"+m).slice(-2)+":"+("0"+ss).slice(-2); }
+  function renderPomo(){
+    pomoTimeEl.textContent=fmt(pomo.remaining);
+    pomoModeEl.textContent = pomo.mode==="work" ? "专注时间" : "休息时间";
+    var prog = pomo.total>0 ? (1 - pomo.remaining/pomo.total) : 0;
+    ringProg.style.strokeDashoffset = RING_C*prog;
+    pomoStartBtn.textContent = pomo.running ? "暂停" : (pomo.remaining<pomo.total ? "继续" : "开始");
+    pomoTodayNum.textContent = state.todayPomos;
+  }
+  function tick(){
+    pomo.remaining=(pomo.endTime-Date.now())/1000;
+    if(pomo.remaining<=0){ pomo.remaining=0; renderPomo(); finishPomo(); return; }
+    renderPomo();
+  }
+  function startPomo(){
+    if(pomo.running){ pomo.running=false; clearInterval(pomo.timer); renderPomo(); return; }
+    if(pomo.remaining<=0) pomo.remaining=pomo.total;
+    pomo.endTime=Date.now()+pomo.remaining*1000; pomo.running=true;
+    pomo.timer=setInterval(tick,250); renderPomo();
+  }
+  function resetPomo(){ pomo.running=false; clearInterval(pomo.timer); pomo.mode="work"; pomo.total=state.work*60; pomo.remaining=pomo.total; renderPomo(); }
+  function finishPomo(){
+    clearInterval(pomo.timer); pomo.running=false; playChime();
+    if(pomo.mode==="work"){
+      state.todayPomos++; save(); renderStats();
+      celebrate(state.todayPomos%4===0 ? "stars" : "star");
+      var note = pendingSplash()>0
+        ? "<p style='margin-top:8px'>🌊 你有 <b>"+pendingSplash()+"</b> 条浪花待处理，休息时正好看看～</p>"
+        : "";
+      openModal("<h3>🍅 番茄钟完成！</h3><p>太棒了，专注的一段结束了。起来活动一下，喝口水吧～</p>"+note+
+        "<div class='row'><button class='btn btn-ghost' id='mOk'>好的</button>"+(pendingSplash()>0?"<button class='btn btn-accent' id='mSplash'>看浪花</button>":"")+"</div>");
+      document.getElementById("mOk").onclick=function(){ closeModal(); switchMode(); };
+      if(pendingSplash()>0){ document.getElementById("mSplash").onclick=function(){ closeModal(); switchMode(); goPage("splash"); }; }
+    } else {
+      openModal("<h3>💡 休息结束</h3><p>满血复活！准备好下一段专注了吗？</p><div class='row'><button class='btn btn-accent' id='mOk2'>开始专注</button></div>");
+      document.getElementById("mOk2").onclick=function(){ closeModal(); switchMode(); };
+    }
+  }
+  function switchMode(){
+    if(pomo.mode==="work"){ pomo.mode="break"; pomo.total=state.break*60; } else { pomo.mode="work"; pomo.total=state.work*60; }
+    pomo.remaining=pomo.total; renderPomo();
+  }
+  pomoStartBtn.addEventListener("click", startPomo);
+  pomoResetBtn.addEventListener("click", resetPomo);
+  function clampInt(v,min,max,def){ v=parseInt(v,10); if(isNaN(v)) v=def; return Math.max(min,Math.min(max,v)); }
+  workMinEl.addEventListener("change", function(){ state.work=clampInt(workMinEl.value,1,120,25); workMinEl.value=state.work; save(); if(!pomo.running){ pomo.mode="work"; pomo.total=state.work*60; pomo.remaining=pomo.total; renderPomo(); } });
+  breakMinEl.addEventListener("change", function(){ state.break=clampInt(breakMinEl.value,1,60,5); breakMinEl.value=state.break; save(); if(!pomo.running && pomo.mode==="break"){ pomo.total=state.break*60; pomo.remaining=pomo.total; renderPomo(); } });
+
+  var audioCtx=null;
+  function playChime(){
+    try{
+      if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+      if(audioCtx.state==="suspended") audioCtx.resume();
+      var now=audioCtx.currentTime;
+      [523.25,659.25,783.99,1046.5].forEach(function(f,i){
+        var o=audioCtx.createOscillator(), g=audioCtx.createGain();
+        o.type="sine"; o.frequency.value=f; o.connect(g); g.connect(audioCtx.destination);
+        var t=now+i*0.18;
+        g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.3,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+0.4);
+        o.start(t); o.stop(t+0.42);
+      });
+    }catch(e){}
+  }
+
+  /* ---------------- memo ---------------- */
+  var memoInput=document.getElementById("memoInput"), memoList=document.getElementById("memoList");
+  function renderMemos(){
+    memoList.innerHTML="";
+    if(!state.memos.length){ var li=document.createElement("li"); li.className="memo-empty"; li.textContent="还没有备忘，添加一条吧～"; memoList.appendChild(li); return; }
+    state.memos.forEach(function(m){
+      var li=document.createElement("li"); li.className="memo-item"+(m.done?" done":"");
+      var cb=document.createElement("div"); cb.className="cb"; cb.textContent=m.done?"✓":"";
+      cb.addEventListener("click", function(){ m.done=!m.done; save(); renderMemos(); });
+      var txt=document.createElement("div"); txt.className="txt"; txt.textContent=m.text;
+      var act=document.createElement("div"); act.className="act";
+      var edit=document.createElement("button"); edit.textContent="✏️"; edit.title="编辑";
+      edit.addEventListener("click", function(){ var v=prompt("编辑备忘：",m.text); if(v!==null){ v=v.trim(); if(v){ m.text=v; save(); renderMemos(); } } });
+      var del=document.createElement("button"); del.textContent="🗑️"; del.title="删除";
+      del.addEventListener("click", function(){ state.memos=state.memos.filter(function(x){return x.id!==m.id;}); save(); renderMemos(); });
+      act.appendChild(edit); act.appendChild(del);
+      li.appendChild(cb); li.appendChild(txt); li.appendChild(act); memoList.appendChild(li);
+    });
+  }
+  function addMemo(){ var v=memoInput.value.trim(); if(!v) return; state.memos.unshift({id:Date.now()+"-"+Math.random().toString(36).slice(2,7), text:v, done:false}); memoInput.value=""; save(); renderMemos(); }
+  document.getElementById("memoAdd").addEventListener("click", addMemo);
+  memoInput.addEventListener("keydown", function(e){ if(e.key==="Enter") addMemo(); });
+
+  /* ---------------- 浪花 / 碎片灵感盒子 ---------------- */
+  var splashQuick=document.getElementById("splashQuick"), splashQuickBtn=document.getElementById("splashQuickBtn");
+  var splashList=document.getElementById("splashList"), splashBadge=document.getElementById("splashBadge");
+  var splashQCount=document.getElementById("splashQCount");
+  var splashFilter="todo";
+
+  function pendingSplash(){ return state.splashes.filter(function(s){ return !s.done; }).length; }
+  function todaySplashCount(){ var t=todayStr(); return state.splashes.filter(function(s){ return s.day===t; }).length; }
+  function relTime(ms){
+    var d=Date.now()-ms;
+    if(d<60000) return "刚刚";
+    if(d<3600000) return Math.floor(d/60000)+" 分钟前";
+    if(d<86400000) return Math.floor(d/3600000)+" 小时前";
+    return Math.floor(d/86400000)+" 天前";
+  }
+  function toast(msg){
+    var t=document.createElement("div");
+    t.textContent=msg;
+    t.style.cssText="position:fixed; left:50%; bottom:92px; transform:translateX(-50%); background:var(--card); color:var(--text); border:1px solid var(--border); padding:9px 16px; border-radius:14px; font-size:13px; font-weight:700; box-shadow:var(--shadow); z-index:70; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);";
+    document.body.appendChild(t);
+    setTimeout(function(){ t.style.transition="opacity .3s"; t.style.opacity="0"; setTimeout(function(){ t.remove(); },320); },1300);
+  }
+  function addSplash(text, fromQuick){
+    text=(text||"").trim(); if(!text) return;
+    state.splashes.unshift({id:Date.now()+"-"+Math.random().toString(36).slice(2,7), text:text, created:Date.now(), day:todayStr(), done:false});
+    save();
+    if(fromQuick){ splashQuick.value=""; toast("已丢进浪花 🌊"); }
+    renderSplashes(); renderStats(); updateSplashBadge(); updateSplashQCount();
+  }
+  function transferToMemo(s){
+    state.memos.unshift({id:Date.now()+"-"+Math.random().toString(36).slice(2,7), text:s.text, done:false});
+    state.splashes=state.splashes.filter(function(x){ return x.id!==s.id; });
+    save(); renderMemos(); renderSplashes(); renderStats(); updateSplashBadge(); updateSplashQCount();
+    toast("已转入备忘录 📝");
+  }
+  function renderSplashes(){
+    splashList.innerHTML="";
+    var list=state.splashes.filter(function(s){
+      return splashFilter==="all" ? true : (splashFilter==="done" ? s.done : !s.done);
+    });
+    if(!list.length){
+      var li=document.createElement("li"); li.className="splash-empty";
+      li.textContent = splashFilter==="done" ? "还没有处理过的浪花～" : "浪花盒是空的，专注时冒出的杂念丢这里吧 🌊";
+      splashList.appendChild(li); return;
+    }
+    list.forEach(function(s){
+      var li=document.createElement("li"); li.className="splash-item"+(s.done?" done":"");
+      var line1=document.createElement("div"); line1.className="line1";
+      var txt=document.createElement("div"); txt.className="txt"; txt.textContent=s.text;
+      line1.appendChild(txt);
+      var meta=document.createElement("div"); meta.className="meta"; meta.textContent=relTime(s.created);
+      var act=document.createElement("div"); act.className="act";
+      var toMemo=document.createElement("button"); toMemo.className="primary"; toMemo.textContent="转备忘录";
+      toMemo.addEventListener("click", function(){ transferToMemo(s); });
+      var mark=document.createElement("button"); mark.textContent=s.done?"标记未处理":"标记已处理";
+      mark.addEventListener("click", function(){ s.done=!s.done; save(); renderSplashes(); updateSplashBadge(); });
+      var del=document.createElement("button"); del.textContent="删除";
+      del.addEventListener("click", function(){
+        state.splashes=state.splashes.filter(function(x){ return x.id!==s.id; });
+        save(); renderSplashes(); renderStats(); updateSplashBadge(); updateSplashQCount();
+      });
+      act.appendChild(toMemo); act.appendChild(mark); act.appendChild(del);
+      li.appendChild(line1); li.appendChild(meta); li.appendChild(act);
+      splashList.appendChild(li);
+    });
+  }
+  function updateSplashBadge(){
+    var n=pendingSplash();
+    if(n>0){ splashBadge.style.display="flex"; splashBadge.textContent=n>99?"99+":String(n); }
+    else { splashBadge.style.display="none"; }
+  }
+  function updateSplashQCount(){
+    var n=pendingSplash();
+    if(n>0){ splashQCount.innerHTML="你有 <b>"+n+"</b> 条浪花待处理，休息时记得看看 🌊"; }
+    else { splashQCount.textContent="把一闪而过的杂念丢进来，休息时再处理，不打断专注。"; }
+  }
+  splashQuickBtn.addEventListener("click", function(){ addSplash(splashQuick.value, true); });
+  splashQuick.addEventListener("keydown", function(e){ if(e.key==="Enter"){ addSplash(splashQuick.value, true); } });
+  document.getElementById("splashFilter").addEventListener("click", function(e){
+    var b=e.target.closest("button"); if(!b) return;
+    splashFilter=b.getAttribute("data-f");
+    document.querySelectorAll("#splashFilter button").forEach(function(x){ x.classList.toggle("active", x===b); });
+    renderSplashes();
+  });
+
+  /* ---------------- stats ---------------- */
+  function renderStats(){
+    document.getElementById("statPomo").textContent=state.todayPomos;
+    document.getElementById("statClick").textContent=state.todayClicks;
+    document.getElementById("statTotal").textContent=state.totalClicks;
+    document.getElementById("statSplash").textContent=todaySplashCount();
+  }
+
+  /* ---------------- theme ---------------- */
+  var themeBtn=document.getElementById("themeBtn");
+  function applyTheme(){
+    document.documentElement.setAttribute("data-theme", state.theme);
+    themeBtn.textContent = state.theme==="dark" ? "☀️" : "🌙";
+    document.getElementById("metaTheme").setAttribute("content", state.theme==="dark" ? "#17141F" : "#F6DCEA");
+  }
+  themeBtn.addEventListener("click", function(){ state.theme=state.theme==="dark"?"light":"dark"; save(); applyTheme(); });
+
+  /* ---------------- tab navigation ---------------- */
+  var tabbar=document.getElementById("tabbar");
+  function goPage(pg){
+    document.querySelectorAll(".tab").forEach(function(t){ t.classList.toggle("active", t.getAttribute("data-page")===pg); });
+    document.querySelectorAll(".page").forEach(function(p){ p.classList.toggle("active", p.id==="page-"+pg); });
+  }
+  tabbar.addEventListener("click", function(e){
+    var btn=e.target.closest(".tab"); if(!btn) return;
+    goPage(btn.getAttribute("data-page"));
+  });
+
+  /* ---------------- fx ---------------- */
+  var fx=document.getElementById("fx");
+  function celebrate(type){
+    var emojis=(type==="stars"||type==="star")?["🌟","✨","⭐","💫"]:["🎉","✨","💥","🎊","🌟"];
+    var count=type==="stars"?30:(type==="confetti"?46:14);
+    for(var i=0;i<count;i++){
+      var s=document.createElement("div"); s.className="fx-item";
+      s.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+      s.style.left=(Math.random()*100)+"%";
+      s.style.top=(type==="confetti"?(60+Math.random()*35):(Math.random()*55))+"%";
+      s.style.setProperty("--dx",((Math.random()*2-1)*140)+"px");
+      s.style.setProperty("--dy",(-(120+Math.random()*220))+"px");
+      s.style.fontSize=(15+Math.random()*22)+"px";
+      fx.appendChild(s);
+      (function(node){ setTimeout(function(){ node.remove(); },1700); })(s);
+    }
+  }
+
+  /* ---------------- init ---------------- */
+  applyTheme(); applyWhaleColor(); tierBadge.textContent="语气："+tierOf(state.totalClicks).name;
+  renderPomo(); renderMemos(); renderSplashes(); renderStats(); updateSplashBadge(); updateSplashQCount();
+
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", function(){ if(location.protocol.indexOf("http")===0){ navigator.serviceWorker.register("./sw.js").catch(function(){}); } });
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "学习监督小鲸鱼",
+  "short_name": "小鲸鱼",
+  "description": "手机优先的 PWA 学习监督工具：互动小鲸鱼、番茄钟、备忘录。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFF4FA",
+  "theme_color": "#F6DCEA",
+  "icons": [
+    { "src": "./icon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any maskable" }
+  ]
+}
