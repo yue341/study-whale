@@ -1,30 +1,76 @@
 const fs = require('fs');
 const path = require('path');
-const { Resvg } = require('@resvg/resvg-js');
+const sharp = require('sharp');
 
-const SRC = 'C:/Users/liuyu/WorkBuddy/2026-09-15-20-37-25/study-whale';
-const svg = fs.readFileSync(path.join(SRC, 'icon.svg'), 'utf8');
+const SRC_DIR = 'C:/Users/liuyu/WorkBuddy/2026-09-15-20-37-25/study-whale';
+const SOURCE = path.join(SRC_DIR, 'icon.png');
+const TEMP_JPG = 'C:/Users/liuyu/Documents/Tencent Files/1522962281/nt_qq/nt_data/Pic/2026-09/Ori/3d0c6a17cfb7d28d4e558fe9b732fc36.jpg';
 
-function render(svgString, size) {
-  const resvg = new Resvg(svgString, {
-    fitTo: { mode: 'width', value: size },
-    background: '#FFF4FA',
-  });
-  return resvg.render().asPng();
+async function sampleBgColor(imgPath) {
+  const { data, info } = await sharp(imgPath)
+    .raw()
+    .ensureAlpha()
+    .toBuffer({ resolveWithObject: true });
+  const channels = info.channels;
+  const inset = 80;
+  // sample four corners (well inside background, away from rounded edge / icon)
+  const points = [
+    { x: inset, y: inset },
+    { x: info.width - inset - 1, y: inset },
+    { x: inset, y: info.height - inset - 1 },
+    { x: info.width - inset - 1, y: info.height - inset - 1 },
+  ];
+  let r = 0, g = 0, b = 0, n = 0;
+  for (const p of points) {
+    for (let dy = -10; dy <= 10; dy += 5) {
+      for (let dx = -10; dx <= 10; dx += 5) {
+        const x = Math.min(info.width - 1, Math.max(0, p.x + dx));
+        const y = Math.min(info.height - 1, Math.max(0, p.y + dy));
+        const idx = (y * info.width + x) * channels;
+        r += data[idx];
+        g += data[idx + 1];
+        b += data[idx + 2];
+        n++;
+      }
+    }
+  }
+  const toHex = v => Math.round(v / n).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
-// 1) 普通图标 192 / 512
-fs.writeFileSync(path.join(SRC, 'icon-192.png'), render(svg, 192));
-fs.writeFileSync(path.join(SRC, 'icon-512.png'), render(svg, 512));
+async function main() {
+  // 1) convert source jpg -> repo/icon.png (PNG, keep original size)
+  await sharp(TEMP_JPG).png().toFile(SOURCE);
 
-// 2) maskable 图标：把原图缩到 80% 居中，背景铺满，留出安全区
-const inner = svg
-  .replace(/^[\s\S]*?<svg[^>]*>/i, '')   // 去掉开头的 <svg ...>
-  .replace(/<\/svg>\s*$/i, '');          // 去掉结尾的 </svg>
-const maskable = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="-30 -30 300 300">
-  <rect x="-30" y="-30" width="300" height="300" fill="#FFF4FA"/>
-  ${inner}
-</svg>`;
-fs.writeFileSync(path.join(SRC, 'icon-maskable-512.png'), render(maskable, 512));
+  const bg = await sampleBgColor(SOURCE);
+  const { width, height } = await sharp(SOURCE).metadata();
+  const size = Math.max(width, height);
 
-console.log('icons generated: icon-192.png, icon-512.png, icon-maskable-512.png');
+  // helper: produce a square PNG of targetSize from source (cover + pad with bg)
+  async function makeSquare(targetSize) {
+    return sharp(SOURCE)
+      .resize(targetSize, targetSize, { fit: 'contain', background: bg })
+      .png()
+      .toBuffer();
+  }
+
+  fs.writeFileSync(path.join(SRC_DIR, 'icon-192.png'), await makeSquare(192));
+  fs.writeFileSync(path.join(SRC_DIR, 'icon-512.png'), await makeSquare(512));
+
+  // maskable: scale content to 80% safe zone on bg
+  const maskableSize = Math.round(512 * 0.8);
+  const content = await sharp(SOURCE)
+    .resize(maskableSize, maskableSize, { fit: 'contain', background: bg })
+    .png()
+    .toBuffer();
+  const offset = Math.round((512 - maskableSize) / 2);
+  await sharp({ create: { width: 512, height: 512, channels: 4, background: bg } })
+    .composite([{ input: content, left: offset, top: offset }])
+    .png()
+    .toFile(path.join(SRC_DIR, 'icon-maskable-512.png'));
+
+  console.log('generated icon.png, icon-192.png, icon-512.png, icon-maskable-512.png');
+  console.log('background color:', bg);
+}
+
+main().catch(err => { console.error(err); process.exit(1); });
